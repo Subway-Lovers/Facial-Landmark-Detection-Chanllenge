@@ -1,0 +1,8 @@
+.DS_Store
+.vscode
+/data/WFLW
+/checkpoint
+/data/AFLW
+/data/AFLW_train_data
+/data/AFLW_validation_data
+
