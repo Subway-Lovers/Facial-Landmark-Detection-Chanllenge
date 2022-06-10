@@ -11,11 +11,13 @@ pip3 install -r requirements.txt
 upload the dataset to data/AFLW/data and rename the folders
 After that, the contents inside the folders should be as follows
 
-> data/
->     AFLW/data/
->         aflw_test/
->         aflw_val/
->         synthetics_train/
+```
+data/
+    AFLW/data/
+        aflw_test/
+        aflw_val/
+        synthetics_train/
+```
 
 Then run the following command to setup training/validation dataset
 
@@ -26,13 +28,15 @@ python3 Preparation.py
 
 After the step, there should be two more folders under data/, the contents inside the folders should be as follows
 
-> data/
->     AFLW/data/
->         aflw_test/
->         aflw_val/
->         synthetics_train/
->     AFLW_train_data/
->     AFLW_validation_data/
+```
+ data/
+     AFLW/data/
+         aflw_test/
+         aflw_val/
+         synthetics_train/
+     AFLW_train_data/
+     AFLW_validation_data/
+```
 
 ## Training ##
 
