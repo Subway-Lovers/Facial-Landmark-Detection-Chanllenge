@@ -8,7 +8,9 @@ run the following command to install packages needed
 pip3 install -r requirements.txt
 ```
 ## Dataset Preparation ##
+
 upload the dataset to data/AFLW/data and rename the folders
+
 After that, the contents inside the folders should be as follows
 
 ```
@@ -26,7 +28,9 @@ Then run the following command to setup training/validation dataset
 python3 Preparation.py
 ```
 
-After the step, there should be two more folders under data/, the contents inside the folders should be as follows
+After the step, there should be two more folders under data/
+
+The contents inside the folders should be as follows
 
 ```
  data/
@@ -53,10 +57,12 @@ python3 test.py
 ```
 
 Then download **output/solution.txt** and zip it.
+
 Upload it to [codolab](https://codalab.lisn.upsaclay.fr/competitions/5118?secret_key=19a7d6c1-b907-47fc-a472-1cf6cbf7f853) and see the results.
 
 ## Work Log ##
 Trial: [PFLD: A Practical Facial Landmark Detector](https://paperswithcode.com/paper/pfld-a-practical-facial-landmark-detector)
+
 https://github.com/polarisZhao/PFLD-pytorch
 
 Options undergoing now:
