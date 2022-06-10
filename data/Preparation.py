@@ -109,7 +109,7 @@ def augmentation(img, annotation):
     img, annotation = random_contrast(img, annotation)
     img, annotation = random_saturation(img, annotation)
     img, annotation = random_hue(img, annotation)
-    img, annotation = random_flip(img, annotation)
+    # img, annotation = random_flip(img, annotation)
     img, annotation = channel_shuffle(img, annotation)
     annotation = np.array(annotation)
     return img, annotation
@@ -220,7 +220,7 @@ def get_dataset_list(imgDir, outDir, landmarkDir, is_train):
             else:
                 img_name = Img.test_path
             # Determine augment or not and the augmentation factor
-            Img.load_data(repeat = 5, augment = True)
+            Img.load_data(repeat = 5, augment = False)
             _, filename = os.path.split(img_name)
             filename, _ = os.path.splitext(filename)
             label_txt = Img.save_data(save_img, str(i)+'_' + filename)

@@ -66,7 +66,7 @@ Trial: [PFLD: A Practical Facial Landmark Detector](https://paperswithcode.com/p
 https://github.com/polarisZhao/PFLD-pytorch
 
 Options undergoing now:
-* MobilenetV3
+* MobilenetV3 (After preparation, run training)
 * Try data augmentation
 * Box-normalized euler angles calculation (upper branch in the architecture)
 
