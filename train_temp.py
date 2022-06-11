@@ -5,6 +5,7 @@ import argparse
 import logging
 from pathlib import Path
 import time
+import cv2
 import os
 
 import numpy as np
@@ -16,19 +17,104 @@ import torchvision.models as models
 from torchvision import datasets, transforms
 import torchvision.utils as vutils
 import torch.nn as nn
-from models.mobilenetV3 import mobilenetv3_large, mobilenetv3_small
-# from models.mobilenetV3 import mobilenetv3_small
+# from models.mobilenetV3 import mobilenetv3_large, mobilenetv3_small
+from models.mobilenetV3 import mobilenetv3
+from models.backup_temp import mobilenetv3_small, Pip_mbnetv3
 #from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from dataset.AFLW_dataset import AFLWDatasets
 from models.pfld import PFLDInference, AuxiliaryNet
 from pfld.loss import PFLDLoss
 from pfld.utils import AverageMeter
-from torchsummary import summary
+
+from math import floor
 
 # change the cuda number if needed
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 #torch.cuda.empty_cache()
+def gen_meanface(root_folder, data_name):
+    with open(os.path.join(root_folder, data_name, 'train.txt'), 'r') as f:
+        annos = f.readlines()
+    annos = [x.strip().split()[1:] for x in annos]
+    annos = [[float(x) for x in anno] for anno in annos]
+    annos = np.array(annos)
+    meanface = np.mean(annos, axis=0)
+    meanface = meanface.tolist()
+    meanface = [str(x) for x in meanface]
+    
+    with open(os.path.join(root_folder, data_name, 'meanface.txt'), 'w') as f:
+        f.write(' '.join(meanface))
+
+def gen_target_pip(target, meanface_indices, target_map, target_local_x, target_local_y, target_nb_x, target_nb_y):
+    num_nb = len(meanface_indices[0])
+    map_channel, map_height, map_width = target_map.shape
+    target = target.reshape(-1, 2)
+    assert map_channel == target.shape[0]
+
+    for i in range(map_channel):
+        mu_x = int(floor(target[i][0] * map_width))
+        mu_y = int(floor(target[i][1] * map_height))
+        mu_x = max(0, mu_x)
+        mu_y = max(0, mu_y)
+        mu_x = min(mu_x, map_width-1)
+        mu_y = min(mu_y, map_height-1)
+        target_map[i, mu_y, mu_x] = 1
+        shift_x = target[i][0] * map_width - mu_x
+        shift_y = target[i][1] * map_height - mu_y
+        target_local_x[i, mu_y, mu_x] = shift_x
+        target_local_y[i, mu_y, mu_x] = shift_y
+
+        for j in range(num_nb):
+            nb_x = target[meanface_indices[i][j]][0] * map_width - mu_x
+            nb_y = target[meanface_indices[i][j]][1] * map_height - mu_y
+            target_nb_x[num_nb*i+j, mu_y, mu_x] = nb_x
+            target_nb_y[num_nb*i+j, mu_y, mu_x] = nb_y
+
+    return target_map, target_local_x, target_local_y, target_nb_x, target_nb_y
+
+class ImageFolder_pip(data.Dataset):
+    def __init__(self, file_list, meanface_indices, transform=None):
+        self.line = None
+        self.path = None
+        self.landmarks = None
+        self.filenames = None
+        with open(file_list, 'r') as f:
+            self.lines = f.readlines()
+
+        self.input_size = 384
+        self.num_lms = 68
+        self.net_stride = 32
+
+        self.meanface_indices = meanface_indices
+        self.num_nb = len(meanface_indices[0])
+        self.transform = transform
+
+
+    def __getitem__(self, index):
+
+        self.line = self.lines[index].strip().split()
+        self.path = self.line[0]
+        self.img_name = self.path.split('/')[-1].split('_')[1]+'.jpg'
+        self.img = cv2.imread(self.line[0])
+        self.target = np.asarray(self.line[1:137], dtype=np.float32)
+
+        target_map = np.zeros((self.num_lms, int(self.input_size/self.net_stride), int(self.input_size/self.net_stride)))
+        target_local_x = np.zeros((self.num_lms, int(self.input_size/self.net_stride), int(self.input_size/self.net_stride)))
+        target_local_y = np.zeros((self.num_lms, int(self.input_size/self.net_stride), int(self.input_size/self.net_stride)))
+        target_nb_x = np.zeros((self.num_nb*self.num_lms, int(self.input_size/self.net_stride), int(self.input_size/self.net_stride)))
+        target_nb_y = np.zeros((self.num_nb*self.num_lms, int(self.input_size/self.net_stride), int(self.input_size/self.net_stride)))
+        target_map, target_local_x, target_local_y, target_nb_x, target_nb_y = gen_target_pip(self.target, self.meanface_indices, target_map, target_local_x, target_local_y, target_nb_x, target_nb_y)
+        
+        target_map = torch.from_numpy(target_map).float()
+        target_local_x = torch.from_numpy(target_local_x).float()
+        target_local_y = torch.from_numpy(target_local_y).float()
+        target_nb_x = torch.from_numpy(target_nb_x).float()
+        target_nb_y = torch.from_numpy(target_nb_y).float()
+
+        return self.img, target_map, target_local_x, target_local_y, target_nb_x, target_nb_y
+
+    def __len__(self):
+        return len(self.lines)
 
 def print_args(args):
     for arg in vars(args):
@@ -119,11 +205,12 @@ def main(args):
     print_args(args)
 
     # Step 2: model, criterion, optimizer, scheduler
-    model = mobilenetv3_small(outnum = 136)
-    # model = PFLDInference()
-    summary(model.cuda(), (3, 384, 384))
-    model = model.to(device)
-    # print(model)
+    mbnet = mobilenetv3_small()
+    net = Pip_mbnetv3(mbnet, num_nb = 10, num_lms = 68, input_size = 384, net_stride = 32)
+    # model = mobilenetv3(outnum = 136, mode = 'small').to(device)
+    model = net.to(device)
+    # model = PFLDInference().to(device)
+    print(model)
 
     auxiliarynet = AuxiliaryNet().to(device)
     criterion = PFLDLoss()

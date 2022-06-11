@@ -138,7 +138,6 @@ class MobileNetV3(nn.Module):
         # building first layer
         input_channel = _make_divisible(16 * width_mult, 8)
         layers = [conv_3x3_bn(3, input_channel, 2)]
-        
         # building inverted residual blocks
         block = InvertedResidual
         for k, t, c, use_se, use_hs, s in self.cfgs:
@@ -147,20 +146,10 @@ class MobileNetV3(nn.Module):
             layers.append(block(input_channel, exp_size, output_channel, k, s, use_se, use_hs))
             input_channel = output_channel
         self.features = nn.Sequential(*layers)
-
-        # add multiscale layer together and send it into fc layer
-        self.avg_pool1 = nn.AvgPool2d(12)
-        self.avg_pool2 = nn.AvgPool2d(6)
-        self.conv1 = conv_3x3_bn(16, 32, 2)
-        self.conv2 = nn.Conv2d(32, 128, 6 , 1, 0)
-        self.relu = nn.ReLU(inplace = True)
-        self.fc = nn.Linear(176, num_classes) #196
-
-        '''
         # building last several layers
         self.conv = conv_1x1_bn(input_channel, exp_size)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        output_channel = {'large': 7414, 'small': 1024}
+        output_channel = {'large': 1280, 'small': 1024}
         output_channel = _make_divisible(output_channel[mode] * width_mult, 8) if width_mult > 1.0 else output_channel[mode]
         self.classifier = nn.Sequential(
             nn.Linear(exp_size, output_channel),
@@ -170,36 +159,14 @@ class MobileNetV3(nn.Module):
         )
 
         self._initialize_weights()
-        '''
 
     def forward(self, x):
         x = self.features(x)
-
-        x1 = self.avg_pool1(x)
-        x1 = x1.view(x1.size(0), -1)
-
-        x = self.conv1(x)
-        x2 = self.avg_pool2(x)
-        x2 = x2.view(x2.size(0), -1)
-
-        x = self.conv2(x)
-        x3 = self.relu(x)
-        x3 = x3.view(x3.size(0), -1)
-
-        
-        # # print(f"after features shape: {x.shape}")
-        # x = self.conv(x)
-        # # print(f"after conv shape: {x.shape}")
-        # x = self.avgpool(x)
-        # # print(f"after avgpool shape: {x.shape}")
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
-
-        multi_scale = torch.cat([x1, x2, x3], 1)
-        # print(x1.shape, x2.shape, x3.shape, multi_scale.shape)
-        landmarks = self.fc(multi_scale)
-
-        return landmarks
+        x = self.conv(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -215,7 +182,8 @@ class MobileNetV3(nn.Module):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
 
-def mobilenetv3_large(outnum, **kwargs):
+
+def mobilenetv3_large(**kwargs):
     """
     Constructs a MobileNetV3-Large model
     """
@@ -231,20 +199,16 @@ def mobilenetv3_large(outnum, **kwargs):
         [3, 2.5,  80, 0, 1, 1],
         [3, 2.3,  80, 0, 1, 1],
         [3, 2.3,  80, 0, 1, 1],
-     '''[3,   6, 112, 1, 1, 1],
+        [3,   6, 112, 1, 1, 1],
         [3,   6, 112, 1, 1, 1],
         [5,   6, 160, 1, 1, 2],
         [5,   6, 160, 1, 1, 1],
-        [5,   6, 160, 1, 1, 1]'''
-        [3,   6, 96 , 1, 1, 1],
-        [3,   6, 96 , 1, 1, 1],
-        [5,   6, 112, 1, 1, 2],
-        [5,   6, 112, 1, 1, 1],
-        [5,   6, 16 , 1, 1, 1] # modified
+        [5,   6, 160, 1, 1, 1]
     ]
-    return MobileNetV3(cfgs, mode='large', **kwargs, num_classes = outnum)
+    return MobileNetV3(cfgs, mode='large', **kwargs)
 
-def mobilenetv3_small(outnum, **kwargs):
+
+def mobilenetv3_small(**kwargs):
     """
     Constructs a MobileNetV3-Small model
     """
@@ -260,11 +224,55 @@ def mobilenetv3_small(outnum, **kwargs):
         [5,    3,  48, 1, 1, 1],
         [5,    6,  96, 1, 1, 2],
         [5,    6,  96, 1, 1, 1],
-        [5,    6,  16, 1, 1, 1], # modified
+        [5,    6,  96, 1, 1, 1],
     ]
 
-    return MobileNetV3(cfgs, mode='small', **kwargs, num_classes = outnum)
+    return MobileNetV3(cfgs, mode='small', **kwargs)
 
 
+class Pip_mbnetv3(nn.Module):
+    def __init__(self, mbnet, num_nb, num_lms=68, input_size=256, net_stride=32):
+        super(Pip_mbnetv3, self).__init__()
+        self.num_nb = num_nb
+        self.num_lms = num_lms
+        self.input_size = input_size
+        self.net_stride = net_stride
+        self.features = mbnet.features
+        self.conv = mbnet.conv
+        self.sigmoid = nn.Sigmoid()
 
+        self.cls_layer = nn.Conv2d(960, num_lms, kernel_size=1, stride=1, padding=0)
+        self.x_layer = nn.Conv2d(960, num_lms, kernel_size=1, stride=1, padding=0)
+        self.y_layer = nn.Conv2d(960, num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(960, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_y_layer = nn.Conv2d(960, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
 
+        nn.init.normal_(self.cls_layer.weight, std=0.001)
+        if self.cls_layer.bias is not None:
+            nn.init.constant_(self.cls_layer.bias, 0)
+
+        nn.init.normal_(self.x_layer.weight, std=0.001)
+        if self.x_layer.bias is not None:
+            nn.init.constant_(self.x_layer.bias, 0)
+
+        nn.init.normal_(self.y_layer.weight, std=0.001)
+        if self.y_layer.bias is not None:
+            nn.init.constant_(self.y_layer.bias, 0)
+
+        nn.init.normal_(self.nb_x_layer.weight, std=0.001)
+        if self.nb_x_layer.bias is not None:
+            nn.init.constant_(self.nb_x_layer.bias, 0)
+
+        nn.init.normal_(self.nb_y_layer.weight, std=0.001)
+        if self.nb_y_layer.bias is not None:
+            nn.init.constant_(self.nb_y_layer.bias, 0)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.conv(x)
+        x1 = self.cls_layer(x)
+        x2 = self.x_layer(x)
+        x3 = self.y_layer(x)
+        x4 = self.nb_x_layer(x)
+        x5 = self.nb_y_layer(x)
+        return x1, x2, x3, x4, x5
