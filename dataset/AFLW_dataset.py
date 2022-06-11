@@ -8,34 +8,16 @@ sys.path.append('..')
 from torch.utils import data
 from pfld.utils import calculate_pitch_yaw_roll
 
-def random_flip(img, annotation, p = 0.5):
-    if random.random() < p:
+
+def random_flip(img, annotation):
+    if random.random() > 0.5:
+        img = img.transpose(img.FLIP_LEFT_RIGHT)
+        annotation = np.array(annotation).reshape(-1, 2)
+        annotation[:,0] = img.shape[0] - annotation[:,0]
+        annotation = annotation.flatten()
         return img, annotation
-
-    img = np.fliplr(img).copy()
-    h, w = img.shape[:2]
-
-    x_min, y_min, x_max, y_max = annotation[0:4]
-    landmark_x = annotation[4::2]
-    landmark_y = annotation[4 + 1::2]
-
-    bbox = np.array([w - x_max, y_min, w - x_min, y_max])
-    for i in range(len(landmark_x)):
-        landmark_x[i] = w - landmark_x[i]
-
-    new_annotation = list()
-    new_annotation.append(x_min)
-    new_annotation.append(y_min)
-    new_annotation.append(x_max)
-    new_annotation.append(y_max)
-
-    for i in range(len(landmark_x)):
-        new_annotation.append(landmark_x[i])
-        new_annotation.append(landmark_y[i])
-
-    new_annotation = np.array(new_annotation)
-
-    return img, new_annotation
+    else:
+        return img, annotation
 
 def channel_shuffle(img, annotation):
     if (img.shape[2] == 3):
@@ -109,12 +91,12 @@ class AFLWDatasets(data.Dataset):
 
         if self.transforms:
             # Apply transform to augment the image and increase the diversity of the datasets
-            self.img, self.landmark = random_noise(self.img, self.landmark)
+            '''self.img, self.landmark = random_noise(self.img, self.landmark)
             self.img, self.landmark = random_brightness(self.img, self.landmark)
             self.img, self.landmark = random_contrast(self.img, self.landmark)
             self.img, self.landmark = random_saturation(self.img, self.landmark)
             self.img, self.landmark = random_hue(self.img, self.landmark)
-            self.img, self.landmark = random_flip(self.img, self.landmark)
+            self.img, self.landmark = random_flip(self.img, self.landmark)'''
 
             # After augmentation, calculate the euler angles
             '''euler_angles_landmark = []
