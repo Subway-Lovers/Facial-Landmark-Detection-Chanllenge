@@ -13,7 +13,9 @@ def random_flip(img, annotation):
     if random.random() > 0.5:
         img = img.transpose(img.FLIP_LEFT_RIGHT)
         annotation = np.array(annotation).reshape(-1, 2)
+        print("before", annotation)
         annotation[:,0] = img.shape[0] - annotation[:,0]
+        print("after", annotation)
         annotation = annotation.flatten()
         return img, annotation
     else:
@@ -91,12 +93,12 @@ class AFLWDatasets(data.Dataset):
 
         if self.transforms:
             # Apply transform to augment the image and increase the diversity of the datasets
-            '''self.img, self.landmark = random_noise(self.img, self.landmark)
+            self.img, self.landmark = random_noise(self.img, self.landmark)
             self.img, self.landmark = random_brightness(self.img, self.landmark)
             self.img, self.landmark = random_contrast(self.img, self.landmark)
             self.img, self.landmark = random_saturation(self.img, self.landmark)
             self.img, self.landmark = random_hue(self.img, self.landmark)
-            self.img, self.landmark = random_flip(self.img, self.landmark)'''
+            # self.img, self.landmark = random_flip(self.img, self.landmark)
 
             # After augmentation, calculate the euler angles
             '''euler_angles_landmark = []

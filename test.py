@@ -15,10 +15,11 @@ from dataset.AFLW_dataset import AFLW_test_Datasets
 from models.pfld import PFLDInference
 from models.mobilenetV3 import mobilenetv3_large, mobilenetv3_small
 
+
 cudnn.benchmark = True
 cudnn.determinstic = True
 cudnn.enabled = True
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cpu")
 
 
@@ -35,7 +36,8 @@ def test(test_dataloader, pfld_backbone, outdir):
             for img_name, img in test_dataloader:
                 img = img.to(device)
                 pfld_backbone = pfld_backbone.to(device)
-                _, landmark = pfld_backbone(img)
+                # _, landmark = pfld_backbone(img)
+                landmark = pfld_backbone(img)
                 landmark = landmark.cpu().numpy()
                 assert (landmark.shape[1] == 136)
                 for i in range(len(img_name)):
@@ -48,7 +50,8 @@ def main(args):
     checkpoint = torch.load(args.model_path, map_location=device)
 
     # Remember to modify
-    pfld_backbone = PFLDInference().to(device)
+    # pfld_backbone = PFLDInference().to(device)
+    pfld_backbone = mobilenetv3_large(136)
 
     pfld_backbone.load_state_dict(checkpoint['pfld_backbone'])
     transform = transforms.Compose([transforms.ToTensor()])

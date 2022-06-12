@@ -6,3 +6,4 @@
 /data/AFLW_train_data
 /data/AFLW_validation_data
 __pycache__/
+/output
