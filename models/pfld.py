@@ -113,7 +113,7 @@ class PFLDInference(nn.Module):
         
         x = self.block3_4(x)    #[64, 96, 96]
         
-        out1 = self.block3_5(x)
+        out1 = self.block3_5(x) #[64, 96, 96]
         x = self.conv4_1(out1)  #[128, 48, 48]
         
         x = self.conv5_1(x)     #[128, 48, 48]
@@ -157,7 +157,7 @@ class PFLDInference(nn.Module):
 class AuxiliaryNet(nn.Module):
     def __init__(self):
         super(AuxiliaryNet, self).__init__()
-        self.conv1 = conv_bn(64, 128, 3, 2)
+        self.conv1 = conv_bn(24, 128, 3, 2)
         self.conv2 = conv_bn(128, 128, 3, 1)
         self.conv3 = conv_bn(128, 32, 3, 2)
         self.conv4 = conv_bn(32, 128, 24, 1)
@@ -166,7 +166,8 @@ class AuxiliaryNet(nn.Module):
         self.fc2 = nn.Linear(32, 3)
 
     def forward(self, x):
-        #[64, 28, 28] [64, 96, 96]
+        #[64, 28, 28] [64, 96, 96] [40, 96, 96][48, 24, 24]
+        # print(x.shape)
         x = self.conv1(x) #[128, 14, 14] [128, 48, 48]
         
         x = self.conv2(x) #[128, 14, 14] [128, 48, 48]

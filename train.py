@@ -15,20 +15,27 @@ import torchvision.models as models
 from torchvision import datasets, transforms
 import torchvision.utils as vutils
 import torch.nn as nn
+import random
 #from tensorboardX import SummaryWriter
 from tqdm import tqdm
-# from dataset.datasets import WLFWDatasets
 from dataset.AFLW_dataset import AFLWDatasets
 from models.pfld import PFLDInference, AuxiliaryNet
-from models.mobilenetV3 import mobilenetv3_large, mobilenetv3_small
+from models.mobileV3 import mobilenetv3_small, mobilenetv3_large
 from pfld.loss import PFLDLoss
 from pfld.utils import AverageMeter
-# from torchinfo import summary
 
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #torch.cuda.empty_cache()
-
+def fixed_seed(myseed):
+    np.random.seed(myseed)
+    random.seed(myseed)
+    torch.manual_seed(myseed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(myseed)
+        torch.cuda.manual_seed(myseed)
 def print_args(args):
     for arg in vars(args):
         s = arg + ': ' + str(getattr(args, arg))
@@ -51,13 +58,6 @@ def str2bool(v):
 def train(train_loader, pfld_backbone, auxiliarynet, criterion, optimizer,
           epoch, mute = False):
     losses = AverageMeter()
-    # mobilenet = models.mobilenet_v3_small(pretrained=True)
-    # mobilenet.classifier = nn.Sequential(
-    # nn.Linear(in_features=576, out_features=1024, bias=True), 
-    # nn.Hardswish(),
-    # nn.Dropout(p=0.2, inplace=True),
-    # nn.Linear(in_features=1024, out_features=136, bias=True)
-    # )
     weighted_loss, loss = None, None
     with tqdm(total = len(train_loader), disable = mute) as pbar:
         for _, img, landmark_gt, euler_angle_gt in train_loader:
@@ -66,18 +66,18 @@ def train(train_loader, pfld_backbone, auxiliarynet, criterion, optimizer,
             landmark_gt = landmark_gt.to(device)
             euler_angle_gt = euler_angle_gt.to(device)
             pfld_backbone = pfld_backbone.to(device)
-            #features, landmarks = pfld_backbone(img)
-            landmarks = pfld_backbone(img)
+            features, landmarks = pfld_backbone(img)
+            # landmarks = pfld_backbone(img)
             
             auxiliarynet = auxiliarynet.to(device)
             
-            #angle = auxiliarynet(features)
-            angle = 0
+            angle = auxiliarynet(features)
+            # angle = 0
             weighted_loss, loss = criterion(landmark_gt,
                                             euler_angle_gt, angle, landmarks)
             optimizer.zero_grad()
-            #weighted_loss.backward()
-            loss.backward()
+            weighted_loss.backward()
+            # loss.backward()
             optimizer.step()
             #print(pfld_backbone.conv1.weight)
             losses.update(loss.item())
@@ -96,8 +96,8 @@ def validate(wlfw_val_dataloader, pfld_backbone, auxiliarynet, criterion):
             euler_angle_gt = euler_angle_gt.to(device)
             pfld_backbone = pfld_backbone.to(device)
             auxiliarynet = auxiliarynet.to(device)
-            # _, landmark = pfld_backbone(img)
-            landmark = pfld_backbone(img)
+            _, landmark = pfld_backbone(img)
+            # landmark = pfld_backbone(img)
             loss = torch.mean(torch.sqrt(torch.sum((landmark_gt - landmark)**2, axis=1)))/384
             losses.append(loss.cpu().numpy())
 
@@ -105,6 +105,7 @@ def validate(wlfw_val_dataloader, pfld_backbone, auxiliarynet, criterion):
 
 
 def main(args):
+    fixed_seed(args.seed)
     # Step 1: parse args config
     logging.basicConfig(
         format=
@@ -117,10 +118,8 @@ def main(args):
     print_args(args)
 
     # Step 2: model, criterion, optimizer, scheduler
-    pfld_backbone = mobilenetv3_large(136)
-    # summary(pfld_backbone, (args.train_batchsize, 3, 384, 384))
-    pfld_backbone = pfld_backbone.to(device)
-
+    pfld_backbone = mobilenetv3_large(136).to(device)
+    # pfld_backbone = PFLDInference().to(device)
     auxiliarynet = AuxiliaryNet().to(device)
     criterion = PFLDLoss()
     optimizer = torch.optim.Adam([{
@@ -130,8 +129,7 @@ def main(args):
     }],
                                  lr=args.base_lr,
                                  weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5 , patience=args.lr_patience, verbose=True)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20,30], gamma=0.1)
     if args.resume:
         checkpoint = torch.load(args.resume)
         auxiliarynet.load_state_dict(checkpoint["auxiliarynet"])
@@ -169,7 +167,9 @@ def main(args):
                                                 optimizer, epoch)
         val_loss = validate(val_dataloader, pfld_backbone, auxiliarynet,
                             criterion)
+        logging.info('Epoch - %d,\t Weighted Train Loss: %4f,\t Train Loss: %.4f,\t Validation Loss: %.4f' % (epoch, weighted_train_loss, train_loss, val_loss))
         if val_loss < best_loss:
+            logging.info('get best model!')
             best_loss = val_loss
             filename = os.path.join(str(args.best_model), "best" + '.pth.tar')
             save_checkpoint(
@@ -182,9 +182,9 @@ def main(args):
             {
                 'pfld_backbone': pfld_backbone.state_dict(),
             }, filename)
-        logging.info('Epoch - %d,\t Weighted Train Loss: %4f,\t Train Loss: %.4f,\t Validation Loss: %.4f' % (epoch, weighted_train_loss, train_loss, val_loss))
-        scheduler.step(val_loss)
-        print('Epoch - %d,\t Weighted Train Loss: %4f,\t Train Loss: %.4f,\t Validation Loss: %.4f' % (epoch, weighted_train_loss, train_loss, val_loss))
+        
+        scheduler.step()
+        # print('Epoch - %d,\t Weighted Train Loss: %4f,\t Train Loss: %.4f,\t Validation Loss: %.4f' % (epoch, weighted_train_loss, train_loss, val_loss))
        
 
 
@@ -220,9 +220,6 @@ def parse_args():
     parser.add_argument('--log_file',
                         default="./checkpoint/train.logs",
                         type=str)
-    parser.add_argument('--tensorboard',
-                        default="./checkpoint/tensorboard",
-                        type=str)
     parser.add_argument(
         '--resume',
         default='',
@@ -242,8 +239,9 @@ def parse_args():
                         default='./data/AFLW_test_data/list.txt',
                         type=str,
                         metavar='PATH')
-    parser.add_argument('--train_batchsize', default=30, type=int)
-    parser.add_argument('--val_batchsize', default=25, type=int)
+    parser.add_argument('--train_batchsize', default=60, type=int)
+    parser.add_argument('--val_batchsize', default=60, type=int)
+    parser.add_argument('--seed', default=7414, type=int)
     args = parser.parse_args()
     return args
 

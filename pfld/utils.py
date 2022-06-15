@@ -52,7 +52,13 @@ def calculate_pitch_yaw_roll(landmarks_2D,
     landmarks_2D = np.asarray(landmarks_2D, dtype=np.float32).reshape(-1, 2)
     
     # ------- Normalize the landmarks ---------
-    landmarks_2D = landmarks_2D/384
+    xy = np.min(landmarks_2D, axis=0).astype(np.int32) 
+    zz = np.max(landmarks_2D, axis=0).astype(np.int32)
+    wh = zz - xy + 1
+    center = (xy + wh/2).astype(np.int32)
+    boxsize = int(np.max(wh)*1.2)
+    xy = center - boxsize//2
+    landmarks_2D = (landmarks_2D-xy)/boxsize
     # ------------------------------------------
 
 

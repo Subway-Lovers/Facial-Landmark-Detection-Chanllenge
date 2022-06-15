@@ -13,14 +13,11 @@ import torch.backends.cudnn as cudnn
 from dataset.AFLW_dataset import AFLW_test_Datasets
 
 from models.pfld import PFLDInference
-from models.mobilenetV3 import mobilenetv3_large, mobilenetv3_small
-
-
+from models.mobileV3 import mobilenetv3_small, mobilenetv3_large
 cudnn.benchmark = True
 cudnn.determinstic = True
 cudnn.enabled = True
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-# device = torch.device("cpu")
 
 
 '''with open(os.path.join(outDir, 'list.txt'),'w') as f:
@@ -36,8 +33,7 @@ def test(test_dataloader, pfld_backbone, outdir):
             for img_name, img in test_dataloader:
                 img = img.to(device)
                 pfld_backbone = pfld_backbone.to(device)
-                # _, landmark = pfld_backbone(img)
-                landmark = pfld_backbone(img)
+                _, landmark = pfld_backbone(img)
                 landmark = landmark.cpu().numpy()
                 assert (landmark.shape[1] == 136)
                 for i in range(len(img_name)):
@@ -48,17 +44,14 @@ def test(test_dataloader, pfld_backbone, outdir):
 def main(args):
     
     checkpoint = torch.load(args.model_path, map_location=device)
-
-    # Remember to modify
     # pfld_backbone = PFLDInference().to(device)
-    pfld_backbone = mobilenetv3_large(136)
-
+    pfld_backbone = mobilenetv3_large(136).to(device)
     pfld_backbone.load_state_dict(checkpoint['pfld_backbone'])
     transform = transforms.Compose([transforms.ToTensor()])
     test_dataset = AFLW_test_Datasets(args.test_dataroot, transforms = transform)
     
     test_dataloader = DataLoader(test_dataset,
-                                     batch_size=50,
+                                     batch_size=80,
                                      shuffle=False,
                                      num_workers=0)
     test(test_dataloader, pfld_backbone, args.out_dir)
@@ -67,7 +60,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser(description='Testing')
     parser.add_argument('--model_path',
-                        default="./checkpoint/snapshot/checkpoint_epoch_2.pth.tar",
+                        default="./checkpoint/best_model/best.pth.tar",
                         type=str)
     parser.add_argument('--test_dataroot',
                         default='./data/AFLW/data/aflw_test',

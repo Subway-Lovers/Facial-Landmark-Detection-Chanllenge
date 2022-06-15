@@ -24,11 +24,13 @@ data/
         synthetics_train/
 ```
 
-Then run the following command to setup training/validation dataset
+cd to data/, 
+
+Then run the following commands to setup training/validation dataset
 
 ```
 # Under data/
-python3 Preparation.py
+python3 test.py
 ```
 
 After the step, there should be two more folders under data/
@@ -51,42 +53,59 @@ The contents inside the folders should be as follows
 python3 train.py
 ```
 
-**Note that the model size should be small than 15MB**
+By default, the best model should be saved in /checkpoint/best_model
+
+In addition, all checkpoints would be saved in /checkpoint/snapshot, named "checkpoint_epoch_xxx.pth.tar" and that the training log would be saved in /checkpoint/train.logs
+
+That is, after training, things in checkpoint should be as follows.
+
+```
+ checkpoint/
+     best_model/
+         best.pth.tar
+     snapshot/
+         checkpoint_epoch_1.pth.tar
+         checkpoint_epoch_2.pth.tar
+         ...
+     train.logs/
+```
+
+As for the best model we summited to codalab, it's stored in the root folder. You can either use the model mentioned above (in /checkpoint) or the best model we provided in testing part.
 
 ## Testing ##
 
 ```
-python3 test.py
+python3 test.py --model_path 'model path of the model you want to test'
 ```
 
-Then download **output/solution.txt** and zip it.
+The program will use the loaded model to predict the landmarks of the testing images. The result will be stored in /output/solution.txt.
+
+## Summit to codalab ## 
+
+Download **output/solution.txt** and zip it.
 
 Upload it to [codolab](https://codalab.lisn.upsaclay.fr/competitions/5118?secret_key=19a7d6c1-b907-47fc-a472-1cf6cbf7f853) and see the results.
 
-## Work Log ##
+## Work Place ##
 
-Trial: [PFLD: A Practical Facial Landmark Detector](https://paperswithcode.com/paper/pfld-a-practical-facial-landmark-detector)
-
-<https://github.com/polarisZhao/PFLD-pytorch>
-
-Options undergoing now:
-
-* Model Comparison
-  * pfld original (modified MobileNetV2) -> best 2.92
-  * MobileNetV3_small (modified last layer) -> Running -> best 2.68 (current)
-  * MobileNetV3_large (modified last layer) -> Running
-  * ShuffleNetV2_1.5x (modified output class) -> Running
+* Model Comparison (backbone)
+  * pfld original (modified MobileNetV2)
+  * MobileNetV3_small (modified last layer)
+  * MobileNetV3_large (modified last layer)
+  * ShuffleNetV2_1.5x (modified output class)
 
     |  Model   | Description  | State | Size (MB) |  Best NME | 
     |  ----  | ----  | ----  | ----  | ----  | 
     | pfld original  | modified from MobileNetV2 | Finish | 13 | 2.92 |
-    | MobileNetV3_small  | modified from MobileNetV3 (Change last layer) | Training | 4 | 2.68 |
-    | MobileNetV3_large  | modified from MobileNetV3 (Change last layer) | Training | 7.4 | 2.45 |
-    | ShuffleNetV2_1.5x   | modified from ShuffleNetV2 (Change output class) | Training | 11 | 2.48 |
+    | MobileNetV3_small  | modified from MobileNetV3 (Change last layer) | Finish | 4 | 2.68 |
+    | MobileNetV3_large  | modified from MobileNetV3 (Change last layer) | Finish | 7.4 | 2.45 |
+    | ShuffleNetV2_1.5x   | modified from ShuffleNetV2 (Change output class) | Finish | 11 | 2.48 |
 
 * Try data augmentation
-* Box-normalized euler angles calculation (upper branch in the architecture) -> Must know where to branch in the backbone network
+
+* Box-normalized euler angles calculation (upper branch in the architecture)
 
 ## Reference ##
 
+[PFLD: A Practical Facial Landmark Detector](https://paperswithcode.com/paper/pfld-a-practical-facial-landmark-detector)
 <https://paperswithcode.com/task/facial-landmark-detection>
