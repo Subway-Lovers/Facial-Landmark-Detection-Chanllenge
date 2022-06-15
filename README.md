@@ -24,13 +24,12 @@ data/
         synthetics_train/
 ```
 
-cd to data/, 
+cd to root folder
 
 Then run the following commands to setup training/validation dataset
 
 ```
-# Under data/
-python3 test.py
+python3 preparation.py
 ```
 
 After the step, there should be two more folders under data/
@@ -74,7 +73,7 @@ As for the best model we summited to codalab, it's stored in the root folder. Yo
 
 ## Testing ##
 
-Before testing, remember to upload the test dataset and rename it. All images should be placed in /data/AFLW/data/aflw_test/.
+Before testing, check you have uploaded the test dataset and renamed it. All images should be placed in /data/AFLW/data/aflw_test/.
 
 ```
  data/
