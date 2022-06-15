@@ -77,12 +77,12 @@ Options undergoing now:
   * MobileNetV3_large (modified last layer) -> Running
   * ShuffleNetV2_1.5x (modified output class) -> Running
 
-    |  Model   | description  | State | Size (MB) | Best NME |
-    |  ----  | ----  | ----  | ----  | ----  |
-    | pfld original  | modified from MobileNetV2 | Finish | ??? | 2.92 |
-    | MobileNetV3_small  | modified from MobileNetV3 (Change last layer) | Training | ??? | 2.68 |
-    | MobileNetV3_large  | modified from MobileNetV3 (Change last layer) | Training | 7.4 | ??? |
-    | ShuffleNetV2_1.5x   | modified from ShuffleNetV2 (Change output class) | Training | 11 | ??? |
+    |  Model   | Description  | State | Size (MB) |  Best NME | 
+    |  ----  | ----  | ----  | ----  | ----  | 
+    | pfld original  | modified from MobileNetV2 | Finish | 13 | 2.92 |
+    | MobileNetV3_small  | modified from MobileNetV3 (Change last layer) | Training | 4 | 2.68 |
+    | MobileNetV3_large  | modified from MobileNetV3 (Change last layer) | Training | 7.4 | 2.45 |
+    | ShuffleNetV2_1.5x   | modified from ShuffleNetV2 (Change output class) | Training | 11 | 2.48 |
 
 * Try data augmentation
 * Box-normalized euler angles calculation (upper branch in the architecture) -> Must know where to branch in the backbone network

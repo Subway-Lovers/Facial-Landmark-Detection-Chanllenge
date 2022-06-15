@@ -19,7 +19,7 @@ from models.mobilenetV3 import mobilenetv3_large, mobilenetv3_small
 cudnn.benchmark = True
 cudnn.determinstic = True
 cudnn.enabled = True
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cpu")
 
 
