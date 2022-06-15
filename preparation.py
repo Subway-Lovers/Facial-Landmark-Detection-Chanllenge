@@ -149,9 +149,9 @@ class ImageDate():
         self.list = landmark
         self.landmark = np.asarray((landmark), dtype=np.float32).reshape(-1, 2)
         self.is_train = is_train
-        self.train_path = os.path.join(imgDir, 'data/synthetics_train', img)
+        self.train_path = os.path.join(imgDir, 'synthetics_train', img)
         
-        self.test_path = os.path.join(imgDir, 'data/aflw_val', img)
+        self.test_path = os.path.join(imgDir, 'aflw_val', img)
         #print(self.test_path, os.path.exists(self.test_path))
         self.img = None
         self.imgs = []
@@ -234,11 +234,12 @@ def get_dataset_list(imgDir, outDir, landmarkDir, is_train):
 
 if __name__ == '__main__':
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    imageDirs = os.path.join(root_dir, 'AFLW/data')
-    landmarkDirs = ['AFLW/data/aflw_val/annot.pkl',
-                    'AFLW/data/synthetics_train/annot.pkl']
+    imageDirs = os.path.join(root_dir, 'data/AFLW/data')
+    landmarkDirs = ['data/AFLW/data/aflw_val/annot.pkl',
+                    'data/AFLW/data/synthetics_train/annot.pkl']
 
-    outDirs = ['AFLW_validation_data', 'AFLW_train_data']
+    outDirs = ['data/AFLW_validation_data', 'data/AFLW_train_data']
+
     for landmarkDir, outDir in zip(landmarkDirs, outDirs):
         outDir = os.path.join(root_dir, outDir)
         print(outDir)
