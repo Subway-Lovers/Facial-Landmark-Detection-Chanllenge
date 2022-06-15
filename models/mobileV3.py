@@ -10,7 +10,7 @@ import torch.nn as nn
 import math
 
 def _make_divisible(v, divisor, min_value=None):
-    if min_value is None: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
+    if min_value is None:
         min_value = divisor
     new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
     # Make sure that round down does not go down by more than 10%.

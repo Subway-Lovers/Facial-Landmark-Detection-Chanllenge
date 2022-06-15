@@ -74,6 +74,26 @@ As for the best model we summited to codalab, it's stored in the root folder. Yo
 
 ## Testing ##
 
+Before testing, remember to upload the test dataset and rename it. All images should be placed in /data/AFLW/data/aflw_test/.
+
+```
+ data/
+     AFLW/
+         data/
+             aflw_test/
+                 image00002.jpg
+                 image00004.jpg
+                 ...
+         ...
+```
+
+cd to root folder and create output folder.
+
+```
+mkdir output
+```
+
+
 ```
 python3 test.py --model_path 'model path of the model you want to test'
 ```
