@@ -1,5 +1,12 @@
 .DS_Store
-/data
+.vscode
+/data/AFLW
+/data/AFLW_train_data
+/data/AFLW_validation_data
+/data/Mirror98.txt
+/data/Original_SetPreparation.py
+/data/Preparation.py
+/data/SetPreparation.py
 __pycache__/
 /output
 /checkpoint
