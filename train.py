@@ -131,8 +131,7 @@ def main(args):
     }],
                                  lr=args.base_lr,
                                  weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5 , patience=args.lr_patience, verbose=True)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20,30], gamma=0.1)
     if args.resume:
         checkpoint = torch.load(args.resume)
         auxiliarynet.load_state_dict(checkpoint["auxiliarynet"])
@@ -186,7 +185,7 @@ def main(args):
                 'pfld_backbone': pfld_backbone.state_dict(),
             }, filename)
         
-        scheduler.step(val_loss)
+        scheduler.step()
         # print('Epoch - %d,\t Weighted Train Loss: %4f,\t Train Loss: %.4f,\t Validation Loss: %.4f' % (epoch, weighted_train_loss, train_loss, val_loss))
        
 
