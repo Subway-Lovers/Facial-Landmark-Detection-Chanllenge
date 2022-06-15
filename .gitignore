@@ -6,3 +6,7 @@ __pycache__/
 /Microsoft-Final-Project-Introduction-0520.pdf
 /validation_all.py
 /results
+train_shuffle.py
+camera.py
+models/shuffleNet.py
+models/mobileV3.py
